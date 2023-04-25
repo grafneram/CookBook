@@ -12,7 +12,6 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
-
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -37,11 +36,7 @@ public class Test extends Application {
     @Override
     public void start(Stage primaryStage) {
         primaryStage.setTitle("Ashley's Nutritional Recipe Cookbook"); //name of cookbook
-
-        // Read recipes from file
-        readRecipesFromFile();
-
-        // Create UI
+        readRecipesFromFile(); // Read recipes from file
         BorderPane root = new BorderPane();
         root.setPadding(new Insets(10));
 
@@ -50,13 +45,10 @@ public class Test extends Application {
         Menu fileMenu = new Menu("File");
         MenuItem newMenuItem = new MenuItem("New");
         newMenuItem.setOnAction(e -> showNewRecipeDialog());
-
         MenuItem editMenuItem = new MenuItem("Edit");
         editMenuItem.setOnAction(e -> showEditRecipeDialog());
-
         MenuItem deleteMenuItem = new MenuItem("Delete");
         deleteMenuItem.setOnAction(e -> deleteSelectedRecipe());
-
         fileMenu.getItems().addAll(newMenuItem, editMenuItem, deleteMenuItem);
         menuBar.getMenus().add(fileMenu);
         root.setTop(menuBar);
@@ -78,7 +70,6 @@ public class Test extends Application {
         searchPane.add(filterComboBox, 1, 0);
         searchPane.add(searchLabel, 2, 0);
         searchPane.add(searchTextField, 3, 0);
-
         root.setBottom(searchPane);
 
         // Create recipe list view
@@ -94,7 +85,6 @@ public class Test extends Application {
                 }
             }
         });
-
         // Create ingredients and instructions text areas
         ingredientsTextArea = new TextArea();
         instructionsTextArea = new TextArea();
@@ -129,20 +119,6 @@ public class Test extends Application {
             e.printStackTrace();
         }
     }
-
-    private void writeRecipesToFile() {
-        try (BufferedWriter bw = new BufferedWriter(new FileWriter(FILENAME))) {
-            for (Recipe recipe : recipes) {
-                bw.write(recipe.getName() + "," + recipe.getIngredients() + "," + recipe.getInstructions());
-                bw.newLine();
-            }
-            bw.flush(); // flush the writer to ensure all data is written
-        } catch (IOException e) {
-            System.err.println("Error writing recipes to file");
-            e.printStackTrace();
-        }
-    }
-
 
     private void updateRecipeInFile(Recipe recipe) {
         try {
@@ -286,32 +262,21 @@ public class Test extends Application {
 
 
     private void filterRecipes() {
-        // Get selected filter and search text
-        String filter = filterComboBox.getSelectionModel().getSelectedItem();
+        String filter = filterComboBox.getValue();
         String search = searchTextField.getText().toLowerCase();
 
-        // Clear list view and add filtered recipes
-        recipeListView.getItems().clear();
+        ObservableList<String> filteredRecipeNames = FXCollections.observableArrayList();
+
         for (Recipe recipe : recipes) {
-            boolean match = false;
-            switch (filter) {
-                case "All":
-                    match = true;
-                    break;
-                case "Name":
-                    match = recipe.getName().toLowerCase().contains(search);
-                    break;
-                case "Ingredients":
-                    match = recipe.getIngredients().toLowerCase().contains(search);
-                    break;
-                case "Instructions":
-                    match = recipe.getInstructions().toLowerCase().contains(search);
-                    break;
-            }
-            if (match) {
-                recipeListView.getItems().add(recipe.getName());
+            boolean filterMatch = filter.equals("All");
+            boolean searchMatch = recipe.getName().toLowerCase().contains(search);
+
+            if (filterMatch && searchMatch) {
+                filteredRecipeNames.add(recipe.getName());
             }
         }
+
+        recipeListView.setItems(filteredRecipeNames);
     }
 
     private Recipe findRecipeByName(String name) {
@@ -323,49 +288,30 @@ public class Test extends Application {
         return null;
     }
 
-
-
-    private void saveNewRecipe(String name, String ingredients, String instructions) {
-        Recipe newRecipe = new Recipe(name, ingredients, instructions);
-        recipes.add(newRecipe);
-        recipeNames.add(newRecipe.getName());
-        writeRecipesToFile(); // call the method to write the recipes to file
-    }
-
-
-
-
     private static class Recipe {
         private String name;
         private String ingredients;
         private String instructions;
-
         public Recipe(String name, String ingredients, String instructions) {
             this.name = name;
             this.ingredients = ingredients;
             this.instructions = instructions;
         }
-
         public String getName() {
             return name;
         }
-
         public void setName(String name) {
             this.name = name;
         }
-
         public String getIngredients() {
             return ingredients;
         }
-
         public void setIngredients(String ingredients) {
             this.ingredients = ingredients;
         }
-
         public String getInstructions() {
             return instructions;
         }
-
         public void setInstructions(String instructions) {
             this.instructions = instructions;
         }
