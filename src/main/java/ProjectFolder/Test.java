@@ -29,20 +29,38 @@ public class Test extends Application {
     private ComboBox<String> filterComboBox;
     private TextField searchTextField;
 
+    private ComboBox<String> fromUnitBox, toUnitBox;
+    private TextField fromTextField, toTextField;
+
+    private final String[] units = {"Teaspoons", "Tablespoons", "Cups"};
+    private final double[] factors = {1.0, 3.0, 48.0};
+
     public static void main(String[] args) { //main method
         launch(args);//runs the application
     }
 
     @Override
     public void start(Stage primaryStage) {
-        primaryStage.setTitle("Ashley's Nutritional Recipe Cookbook"); //name of cookbook
+
+        primaryStage.setTitle("Ashley's Nutritional Recipe Cookbook"); //name of cookbook (title)
         readRecipesFromFile(); // Read recipes from file
         BorderPane root = new BorderPane();
         root.setPadding(new Insets(10));
 
+        //Conversion Calculator Labels:
+        Label fromLabel = new Label("From:");
+        Label toLabel = new Label("To:");
+        fromUnitBox = new ComboBox<>();
+        toUnitBox = new ComboBox<>();
+        fromTextField = new TextField();
+        toTextField = new TextField();
+        Button convertButton = new Button("Convert");
+        convertButton.setOnAction(e -> convert());
+
+
         // Create menu bar
         MenuBar menuBar = new MenuBar();
-        Menu fileMenu = new Menu("File");
+        Menu fileMenu = new Menu("EDIT COOKBOOK");
         MenuItem newMenuItem = new MenuItem("New");
         newMenuItem.setOnAction(e -> showNewRecipeDialog());
         MenuItem editMenuItem = new MenuItem("Edit");
@@ -59,13 +77,26 @@ public class Test extends Application {
         searchPane.setVgap(10);
         searchPane.setPadding(new Insets(10));
 
-        Label filterLabel = new Label("Filter:");
+        Label filterLabel = new Label("Filter:"); //Filter label
         filterComboBox = new ComboBox<>(FXCollections.observableArrayList(FILTER_OPTIONS));
         filterComboBox.getSelectionModel().select(0);
 
-        Label searchLabel = new Label("Search:");
+        Label searchLabel = new Label("Search:"); //Search Label
         searchTextField = new TextField();
 
+//PLACEMENT FOR CONVERSION
+        searchPane.add(new Label("Conversion Calculator: "), 5,2);
+        searchPane.add(fromLabel, 4, 4);
+        searchPane.add(fromTextField, 5, 4);
+        searchPane.add(fromUnitBox, 6, 4);
+        searchPane.add(toLabel, 4, 5);
+        searchPane.add(toTextField, 5, 5);
+        searchPane.add(toUnitBox, 6, 5);
+        searchPane.add(convertButton, 5, 6);
+        fromUnitBox.getItems().addAll(units);
+        toUnitBox.getItems().addAll(units);
+
+//PLACEMENT FOR SEARCH AND FILTER
         searchPane.add(filterLabel, 0, 0);
         searchPane.add(filterComboBox, 1, 0);
         searchPane.add(searchLabel, 2, 0);
@@ -74,7 +105,7 @@ public class Test extends Application {
 
         // Create recipe list view
         recipeListView = new ListView<>(recipeNames);
-        recipeListView.setPrefWidth(200);
+        recipeListView.setPrefWidth(200); //size of recipe View
         recipeListView.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<String>() {
             @Override
             public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
@@ -88,19 +119,34 @@ public class Test extends Application {
         // Create ingredients and instructions text areas
         ingredientsTextArea = new TextArea();
         instructionsTextArea = new TextArea();
-        ingredientsTextArea.setEditable(false);
-        instructionsTextArea.setEditable(false);
+        ingredientsTextArea.setEditable(false); //can't be edited from here
+        instructionsTextArea.setEditable(false);//can't be edited from here
 
         VBox textAreaBox = new VBox(10, new Label("Ingredients:"), ingredientsTextArea, new Label("Instructions:"), instructionsTextArea);
         root.setCenter(new SplitPane(recipeListView, textAreaBox));
 
-        // Filter recipes based on filter and search text
-        filterComboBox.setOnAction(e -> filterRecipes());
-        searchTextField.textProperty().addListener((observable, oldValue, newValue) -> filterRecipes());
+        searchTextField.textProperty().addListener((observable, oldValue, newValue) -> filterRecipes()); //listener for our search bar
 
-        // Show UI
-        primaryStage.setScene(new Scene(root, 800, 600));
-        primaryStage.show();
+        primaryStage.setScene(new Scene(root, 800, 600)); //size of scene
+        primaryStage.show(); //show UI
+    }
+
+    private void convert() { //used to convert from cups to teaspoons to tablespoons
+        try {
+            int fromIndex = fromUnitBox.getSelectionModel().getSelectedIndex();
+            int toIndex = toUnitBox.getSelectionModel().getSelectedIndex();
+            String fromText = fromTextField.getText().trim(); //trims white space (spaces)
+
+            if (fromIndex == -1 || toIndex == -1 || fromText.isEmpty()) { //if either number is -1 or empty
+                return;
+            }
+
+            double fromValue = Double.parseDouble(fromText);
+            double result = fromValue * factors[fromIndex] / factors[toIndex];
+            toTextField.setText(String.format("%.2f", result)); //double value formatting
+        } catch (NumberFormatException ex) {
+            System.out.println("Cannot convert letters to numbers"); //If user enters 'C' calculations will not be done, Error message printed to console
+        }
     }
 
     private void readRecipesFromFile() {
@@ -145,8 +191,6 @@ public class Test extends Application {
         }
     }
 
-
-
     private void deleteRecipeFromFile(Recipe recipe) {
         try {
             List<String> lines = new ArrayList<>();
@@ -169,7 +213,6 @@ public class Test extends Application {
             e.printStackTrace();
         }
     }
-
 
     private void showNewRecipeDialog() {
         TextInputDialog dialog = new TextInputDialog();

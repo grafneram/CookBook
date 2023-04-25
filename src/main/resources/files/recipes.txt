@@ -1,3 +1,6 @@
 Cookies,Test,Test
-Dessert Cookies,Test,Test
-Cookies Test,Test,Test
+Dessert Cookies,Test,You will need to Test the cookies
+Cookies Test,Test1,Test2
+
+Colorado Cookies,These are colorado cookies,cook for a long time
+Banana Fudge,banana fudge,cook
