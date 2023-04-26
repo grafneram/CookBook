@@ -39,7 +39,7 @@ public class Test extends Application {
 
     @Override
     public void start(Stage primaryStage) {
-        primaryStage.setTitle("Ashley's Nutritional Recipe Cookbook"); //name of cookbook (title)
+        primaryStage.setTitle("Ashley's Recipe Cookbook"); //name of cookbook (title)
         readRecipesFromFile(); // Read recipes from file
         BorderPane root = new BorderPane();
         root.setPadding(new Insets(10));
@@ -87,7 +87,9 @@ public class Test extends Application {
         searchTextField = new TextField();
 
 //PLACEMENT FOR CONVERSION
-        gridPane.add(new Label("Conversion Calculator: "), 5, 2);
+        Label conversion = new Label ("Conversion Calculator: "); //text label
+        conversion.setStyle("-fx-font-size: 20px;"); //style
+        gridPane.add(conversion, 5, 3);
         gridPane.add(fromLabel, 4, 4);
         gridPane.add(fromTextField, 5, 4);
         gridPane.add(fromUnitBox, 6, 4);
@@ -138,6 +140,11 @@ public class Test extends Application {
         primaryStage.setScene(new Scene(root, 800, 600)); //size of scene
         primaryStage.show(); //show UI
     }
+
+
+
+
+
 
     private void convert() { //used to convert from cups to teaspoons to tablespoons
         try {
@@ -327,7 +334,6 @@ public class Test extends Application {
                         ingredient.toLowerCase().contains("cheese") ||
                         ingredient.toLowerCase().contains("yogurt") ||
                         ingredient.toLowerCase().contains("cream") ||
-                        ingredient.toLowerCase().contains("dairy") ||
                         ingredient.toLowerCase().contains("butter")) {
                     hasDairy = true;
                     break;
