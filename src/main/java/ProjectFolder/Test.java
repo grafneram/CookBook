@@ -1,9 +1,5 @@
 package ProjectFolder;
 
-//Ashley Grafner
-//CSC 1061
-//McDougle
-
 import javafx.application.Application;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
@@ -17,9 +13,7 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import java.io.*;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 public class Test extends Application {
     private static final String FILENAME = "/Users/Ashley/IdeaProjects/FinalJavaFX/src/main/resources/files/recipes.txt";
@@ -29,10 +23,9 @@ public class Test extends Application {
     private TextArea ingredientsTextArea;
     private TextArea instructionsTextArea;
     private TextField searchTextField;
-
+    private CheckBox dairyCheckBox;
     private ComboBox<String> fromUnitBox, toUnitBox;
     private TextField fromTextField, toTextField;
-
     private final String[] units = {"Teaspoons", "Tablespoons", "Cups"};
     private final double[] factors = {1.0, 3.0, 48.0};
 
@@ -73,30 +66,38 @@ public class Test extends Application {
         root.setTop(menuBar);
 
         // Create search bar
-        GridPane searchPane = new GridPane();
-        searchPane.setHgap(10);
-        searchPane.setVgap(10);
-        searchPane.setPadding(new Insets(10));
+        GridPane gridPane = new GridPane();
+        gridPane.setHgap(10);
+        gridPane.setVgap(10);
+        gridPane.setPadding(new Insets(10));
+
+
+        Label dairyFilterLabel = new Label("Filter by Dairy:");
+        dairyCheckBox = new CheckBox("Contains Dairy");
+        dairyCheckBox.setOnAction(e -> filterByDairy());
+        gridPane.add(dairyFilterLabel, 0, 3);
+        gridPane.add(dairyCheckBox, 1, 3);
+        root.setBottom(new VBox(10, gridPane));
 
         Label searchLabel = new Label("Search:"); //Search Label
         searchTextField = new TextField();
 
 //PLACEMENT FOR CONVERSION
-        searchPane.add(new Label("Conversion Calculator: "), 5,2);
-        searchPane.add(fromLabel, 4, 4);
-        searchPane.add(fromTextField, 5, 4);
-        searchPane.add(fromUnitBox, 6, 4);
-        searchPane.add(toLabel, 4, 5);
-        searchPane.add(toTextField, 5, 5);
-        searchPane.add(toUnitBox, 6, 5);
-        searchPane.add(convertButton, 5, 6);
+        gridPane.add(new Label("Conversion Calculator: "), 5, 2);
+        gridPane.add(fromLabel, 4, 4);
+        gridPane.add(fromTextField, 5, 4);
+        gridPane.add(fromUnitBox, 6, 4);
+        gridPane.add(toLabel, 4, 5);
+        gridPane.add(toTextField, 5, 5);
+        gridPane.add(toUnitBox, 6, 5);
+        gridPane.add(convertButton, 5, 6);
         fromUnitBox.getItems().addAll(units);
         toUnitBox.getItems().addAll(units);
 
 //PLACEMENT FOR SEARCH;
-        searchPane.add(searchLabel, 0, 0);
-        searchPane.add(searchTextField, 1, 0);
-        root.setBottom(searchPane);
+        gridPane.add(searchLabel, 0, 0);
+        gridPane.add(searchTextField, 1, 0);
+        root.setBottom(gridPane);
 
         // Create recipe list view
         recipeListView = new ListView<>(recipeNames);
@@ -128,7 +129,7 @@ public class Test extends Application {
 
         root.setCenter(new SplitPane(recipeListView, textAreaBox));
 
-        searchTextField.textProperty().addListener((observable, oldValue, newValue) -> searchRecipes()); //listener for our search bar
+        searchTextField.textProperty().addListener((observable, oldValue, newValue) -> searchRecipes(recipes)); //listener for our search bar
 
         primaryStage.setScene(new Scene(root, 800, 600)); //size of scene
         primaryStage.show(); //show UI
@@ -300,7 +301,7 @@ public class Test extends Application {
             Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
             alert.setTitle("Confirmation Dialog");
             alert.setHeaderText("Confirm Deletion");
-            alert.setContentText("Are you sure you want to delete the recipe: " +recipe.getName() +"?");
+            alert.setContentText("Are you sure you want to delete the recipe: " + recipe.getName() + "?");
 
             Optional<ButtonType> result = alert.showAndWait();
             if (result.get() == ButtonType.OK) {
@@ -311,22 +312,48 @@ public class Test extends Application {
         }
     }
 
-
-    private void searchRecipes() {
-        String search = searchTextField.getText().toLowerCase();
-
-        ObservableList<String> searchRecipes = FXCollections.observableArrayList();
-
+    private void filterByDairy() {
+        boolean dairyChecked = dairyCheckBox.isSelected();
+        List<Recipe> filteredRecipes = new ArrayList<>();
         for (Recipe recipe : recipes) {
-            boolean searchMatch = recipe.getName().toLowerCase().contains(search);
+            boolean hasDairy = false;
+            List<String> ingredients = Arrays.asList(recipe.getIngredients().split(","));
+            for (String ingredient : ingredients) {
+                if (ingredient.toLowerCase().contains("milk") ||
+                        ingredient.toLowerCase().contains("cheese") ||
+                        ingredient.toLowerCase().contains("yogurt") ||
+                        ingredient.toLowerCase().contains("cream") ||
+                        ingredient.toLowerCase().contains("dairy") ||
+                        ingredient.toLowerCase().contains("butter")) {
+                    hasDairy = true;
+                    break;
+                }
+            }
+            if (dairyChecked && hasDairy) {
+                filteredRecipes.add(recipe);
+            } else if (!dairyChecked) {
+                filteredRecipes.add(recipe);
+            }
 
-            if (searchMatch) {
-                searchRecipes.add(recipe.getName());
+        }
+        searchRecipes(filteredRecipes);
+    }
+
+    private void searchRecipes(List<Recipe> recipes) {
+        String searchText = searchTextField.getText().toLowerCase();
+        List<Recipe> filteredRecipes = new ArrayList<>();
+        for (Recipe recipe : recipes) {
+            if (recipe.getName().toLowerCase().contains(searchText)) {
+                filteredRecipes.add(recipe);
             }
         }
-
-        recipeListView.setItems(searchRecipes);
+        ObservableList<String> recipeNames = FXCollections.observableArrayList();
+        for (Recipe recipe : filteredRecipes) {
+            recipeNames.add(recipe.getName());
+        }
+        recipeListView.setItems(recipeNames);
     }
+
     private Recipe findRecipeByName(String name) {
         for (Recipe recipe : recipes) {
             if (recipe.getName().equals(name)) {
