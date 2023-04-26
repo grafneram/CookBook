@@ -1,6 +1,3 @@
-Cookies,Test,Test
+Cookies,flour,cook for 15 mins
 Dessert Cookies,Test,You will need to Test the cookies
-Cookies Test,Test1,Test2
-
-Colorado Cookies,These are colorado cookies,cook for a long time
-Banana Fudge,banana fudge,cook
+Test Recipe,Hi there I changed this,Step 1. Gather items Step 2.  Prepare Step 3. Mix Step 4. Cook Step 5. Eat!

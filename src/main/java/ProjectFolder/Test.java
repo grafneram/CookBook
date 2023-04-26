@@ -1,5 +1,9 @@
 package ProjectFolder;
 
+//Ashley Grafner
+//CSC 1061
+//McDougle
+
 import javafx.application.Application;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
@@ -19,14 +23,11 @@ import java.util.Optional;
 
 public class Test extends Application {
     private static final String FILENAME = "/Users/Ashley/IdeaProjects/FinalJavaFX/src/main/resources/files/recipes.txt";
-    private static final String[] FILTER_OPTIONS = {"All", "Breakfast", "Lunch", "Dinner", "Dessert"};
-
-    private ObservableList<Recipe> recipes = FXCollections.observableArrayList();
-    private ObservableList<String> recipeNames = FXCollections.observableArrayList();
+    private final ObservableList<Recipe> recipes = FXCollections.observableArrayList();
+    private final ObservableList<String> recipeNames = FXCollections.observableArrayList();
     private ListView<String> recipeListView;
     private TextArea ingredientsTextArea;
     private TextArea instructionsTextArea;
-    private ComboBox<String> filterComboBox;
     private TextField searchTextField;
 
     private ComboBox<String> fromUnitBox, toUnitBox;
@@ -41,7 +42,6 @@ public class Test extends Application {
 
     @Override
     public void start(Stage primaryStage) {
-
         primaryStage.setTitle("Ashley's Nutritional Recipe Cookbook"); //name of cookbook (title)
         readRecipesFromFile(); // Read recipes from file
         BorderPane root = new BorderPane();
@@ -61,6 +61,7 @@ public class Test extends Application {
         // Create menu bar
         MenuBar menuBar = new MenuBar();
         Menu fileMenu = new Menu("EDIT COOKBOOK");
+        fileMenu.setStyle("-fx-font-size: 20px;");
         MenuItem newMenuItem = new MenuItem("New");
         newMenuItem.setOnAction(e -> showNewRecipeDialog());
         MenuItem editMenuItem = new MenuItem("Edit");
@@ -77,10 +78,6 @@ public class Test extends Application {
         searchPane.setVgap(10);
         searchPane.setPadding(new Insets(10));
 
-        Label filterLabel = new Label("Filter:"); //Filter label
-        filterComboBox = new ComboBox<>(FXCollections.observableArrayList(FILTER_OPTIONS));
-        filterComboBox.getSelectionModel().select(0);
-
         Label searchLabel = new Label("Search:"); //Search Label
         searchTextField = new TextField();
 
@@ -96,11 +93,9 @@ public class Test extends Application {
         fromUnitBox.getItems().addAll(units);
         toUnitBox.getItems().addAll(units);
 
-//PLACEMENT FOR SEARCH AND FILTER
-        searchPane.add(filterLabel, 0, 0);
-        searchPane.add(filterComboBox, 1, 0);
-        searchPane.add(searchLabel, 2, 0);
-        searchPane.add(searchTextField, 3, 0);
+//PLACEMENT FOR SEARCH;
+        searchPane.add(searchLabel, 0, 0);
+        searchPane.add(searchTextField, 1, 0);
         root.setBottom(searchPane);
 
         // Create recipe list view
@@ -122,10 +117,18 @@ public class Test extends Application {
         ingredientsTextArea.setEditable(false); //can't be edited from here
         instructionsTextArea.setEditable(false);//can't be edited from here
 
-        VBox textAreaBox = new VBox(10, new Label("Ingredients:"), ingredientsTextArea, new Label("Instructions:"), instructionsTextArea);
+        VBox textAreaBox = new VBox(10, new Label(" Ingredients:"), ingredientsTextArea, new Label(" Instructions:"), instructionsTextArea);
+        textAreaBox.getChildren().forEach(node -> {
+            if (node instanceof Label) {
+                node.setStyle("-fx-font-size: 14px;"); //text is size 20
+            } else if (node instanceof TextArea) {
+                node.setStyle("-fx-font-size: 14px;"); //text is size 20
+            }
+        });
+
         root.setCenter(new SplitPane(recipeListView, textAreaBox));
 
-        searchTextField.textProperty().addListener((observable, oldValue, newValue) -> filterRecipes()); //listener for our search bar
+        searchTextField.textProperty().addListener((observable, oldValue, newValue) -> searchRecipes()); //listener for our search bar
 
         primaryStage.setScene(new Scene(root, 800, 600)); //size of scene
         primaryStage.show(); //show UI
@@ -153,7 +156,7 @@ public class Test extends Application {
         try (BufferedReader br = new BufferedReader(new FileReader(FILENAME))) {
             String line;
             while ((line = br.readLine()) != null) {
-                String[] values = line.split(",");
+                String[] values = line.split("[,\\n]");
                 if (values.length == 3) {
                     Recipe recipe = new Recipe(values[0], values[1], values[2]);
                     recipes.add(recipe);
@@ -171,7 +174,7 @@ public class Test extends Application {
             List<String> lines = new ArrayList<>();
             BufferedReader br = new BufferedReader(new FileReader(FILENAME));
             String line;
-            while ((line = br.readLine()) != null) {
+            while ((line = br.readLine()) != null && !line.isEmpty()) {
                 if (line.startsWith(recipe.getName() + ",")) {
                     line = recipe.getName() + "," + recipe.getIngredients() + "," + recipe.getInstructions();
                 }
@@ -229,7 +232,7 @@ public class Test extends Application {
             // Add new recipe to file
             try {
                 BufferedWriter bw = new BufferedWriter(new FileWriter(FILENAME, true));
-                bw.write(recipe.getName() + "," + recipe.getIngredients() + "," + recipe.getInstructions());
+                bw.write(recipe.getName() + "," + recipe.getIngredients().replaceAll("[\n,]", " ") + "," + recipe.getInstructions().replaceAll("[\n,]", " "));
                 bw.newLine();
                 bw.close();
             } catch (IOException e) {
@@ -291,37 +294,39 @@ public class Test extends Application {
     }
 
     private void deleteSelectedRecipe() {
-        String selectedRecipeName = recipeListView.getSelectionModel().getSelectedItem();
-        if (selectedRecipeName != null) {
-            Recipe selectedRecipe = findRecipeByName(selectedRecipeName);
-            if (selectedRecipe != null) {
-                recipes.remove(selectedRecipe);
-                recipeNames.remove(selectedRecipeName);
-                recipeListView.getSelectionModel().clearSelection();
-                deleteRecipeFromFile(selectedRecipe);
+        String selectedRecipe = recipeListView.getSelectionModel().getSelectedItem();
+        Recipe recipe = findRecipeByName(selectedRecipe);
+        if (recipe != null) {
+            Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+            alert.setTitle("Confirmation Dialog");
+            alert.setHeaderText("Confirm Deletion");
+            alert.setContentText("Are you sure you want to delete the recipe: " +recipe.getName() +"?");
+
+            Optional<ButtonType> result = alert.showAndWait();
+            if (result.get() == ButtonType.OK) {
+                recipes.remove(recipe);
+                recipeNames.remove(recipe.getName());
+                deleteRecipeFromFile(recipe);
             }
         }
     }
 
 
-    private void filterRecipes() {
-        String filter = filterComboBox.getValue();
+    private void searchRecipes() {
         String search = searchTextField.getText().toLowerCase();
 
-        ObservableList<String> filteredRecipeNames = FXCollections.observableArrayList();
+        ObservableList<String> searchRecipes = FXCollections.observableArrayList();
 
         for (Recipe recipe : recipes) {
-            boolean filterMatch = filter.equals("All");
             boolean searchMatch = recipe.getName().toLowerCase().contains(search);
 
-            if (filterMatch && searchMatch) {
-                filteredRecipeNames.add(recipe.getName());
+            if (searchMatch) {
+                searchRecipes.add(recipe.getName());
             }
         }
 
-        recipeListView.setItems(filteredRecipeNames);
+        recipeListView.setItems(searchRecipes);
     }
-
     private Recipe findRecipeByName(String name) {
         for (Recipe recipe : recipes) {
             if (recipe.getName().equals(name)) {
