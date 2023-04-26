@@ -5,8 +5,6 @@ package ProjectFolder;
 //McDougle
 
 import javafx.application.Application;
-import javafx.beans.value.ChangeListener;
-import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
@@ -85,7 +83,7 @@ public class Test extends Application {
         Label searchLabel = new Label("Search:"); //Search Label
         searchTextField = new TextField();
         //Listener for searchTextField. calls the searchRecipes method with the updated list of recipes if changes:
-        searchTextField.textProperty().addListener((observable, oldValue, newValue) -> searchRecipes(recipes));
+        searchTextField.textProperty().addListener((observable, oldValue, newValue) -> searchRecipes());
         gridPane.add(searchLabel, 0, 0);
         gridPane.add(searchTextField, 1, 0);
         borderPane.setBottom(gridPane);
@@ -109,14 +107,11 @@ public class Test extends Application {
 
 
         // Adds a listener to the selection of the recipeListView, which updates the displayed recipe's ingredients and instructions when a new recipe is selected:
-        recipeListView.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<String>() {
-            @Override
-            public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
-                Recipe recipe = findRecipeByName(newValue); // Find the selected recipe by its name
-                if (recipe != null) { // If the recipe exists, update the displayed ingredients and instructions
-                    ingredientsTextArea.setText(recipe.getIngredients());
-                    instructionsTextArea.setText(recipe.getInstructions());
-                }
+        recipeListView.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
+            Recipe recipe = findRecipeByName(newValue); // Find the selected recipe by its name
+            if (recipe != null) { // If the recipe exists, update the displayed ingredients and instructions
+                ingredientsTextArea.setText(recipe.getIngredients());
+                instructionsTextArea.setText(recipe.getInstructions());
             }
         });
         // Create ingredients and instructions text areas
@@ -173,22 +168,25 @@ public class Test extends Application {
             List<String> lines = new ArrayList<>();
             BufferedReader br = new BufferedReader(new FileReader(FILENAME)); //Open the file for reading
             String line;
-            /// Read each line of the file and add it to a list of lines, updating the line for the specified recipe if it is found:
+            // Read each line of the file and add it to a list of lines, updating the line for the specified recipe if it is found:
             while ((line = br.readLine()) != null && !line.isEmpty()) { //while not empty or null:
                 if (line.startsWith(recipe.getName() + ",")) {
-                    line = recipe.getName() + "," + recipe.getIngredients() + "," + recipe.getInstructions();
+                    //If ingredients/instructions have commas/newlines then replace with space
+                    String ingredients = recipe.getIngredients().replaceAll("[,\n]", " ");
+                    String instructions = recipe.getInstructions().replaceAll("[,\n]", " ");
+                    line = recipe.getName() + "," + ingredients + "," + instructions;
                 }
                 lines.add(line); //adds line to array
             }
             br.close(); //close
-            BufferedWriter bw = new BufferedWriter(new FileWriter(FILENAME)); ///Open the file for writing
+            BufferedWriter bw = new BufferedWriter(new FileWriter(FILENAME)); //Open the file for writing
             for (String l : lines) { //Write each line in the list to the file
                 bw.write(l);
                 bw.newLine();
             }
-            bw.flush();// Flush and close the BufferedWriter
+            bw.flush(); // Flush and close the BufferedWriter
             bw.close();
-        } catch (IOException e) { //error message
+    } catch (IOException e) { //error message
             System.out.println("Error updating recipe in file");
         }
     }
@@ -331,6 +329,7 @@ public class Test extends Application {
                 recipes.remove(recipe);
                 recipeNames.remove(recipe.getName());
                 deleteRecipeFromFile(recipe);
+                recipeListView.refresh(); //refreshes
             }
         }
     }
@@ -347,7 +346,7 @@ public class Test extends Application {
             boolean hasDairy = false; //set the false until true
 
             // Split the ingredients string by comma delimiter into a list of individual ingredients:
-            List<String> ingredients = Arrays.asList(recipe.getIngredients().split(","));
+            List<String> ingredients = List.of((recipe.getIngredients().split(",")));
             // Check each ingredient with our dairy-related keywords and set hasDairy flag to true if it does:
             for (String ingredient : ingredients) {
                 if (ingredient.toLowerCase().contains("milk") ||
@@ -367,17 +366,38 @@ public class Test extends Application {
                 filteredRecipes.add(recipe);
             }
         }
-        searchRecipes(filteredRecipes);
+        searchRecipes();
     }
     /**
      * Search recipes based on the name of the recipe.
      */
-    private void searchRecipes(List<Recipe> recipes) { //searching based on the name of the recipe
+    private void searchRecipes() {
         String searchText = searchTextField.getText().toLowerCase(); // from searchTextField and converted to lowercase.
+        boolean dairyChecked = dairyCheckBox.isSelected(); // Check if the "dairyCheckBox" is selected
         List<Recipe> filteredRecipes = new ArrayList<>(); //List of Recipe objects called filteredRecipes.
         for (Recipe recipe : recipes) {
-            if (recipe.getName().toLowerCase().contains(searchText)) {
-                filteredRecipes.add(recipe);
+            boolean hasDairy = false; //set the false until true
+
+            // Split the ingredients string by comma delimiter into a list of individual ingredients:
+            List<String> ingredients = List.of((recipe.getIngredients().split(",")));
+            // Check each ingredient with our dairy-related keywords and set hasDairy flag to true if it does:
+            for (String ingredient : ingredients) {
+                if (ingredient.toLowerCase().contains("milk") ||
+                        ingredient.toLowerCase().contains("cheese") ||
+                        ingredient.toLowerCase().contains("yogurt") ||
+                        ingredient.toLowerCase().contains("cream") ||
+                        ingredient.toLowerCase().contains("butter")) {
+                    hasDairy = true;
+                    break;
+                }
+            }
+
+            //Add the recipe to the filtered list if it contains dairy products and the "dairyCheckBox" is selected
+            // or if it does not contain dairy products and the "dairyCheckBox" is not selected
+            if (!dairyChecked || hasDairy) {
+                if (recipe.getName().toLowerCase().contains(searchText)) {
+                    filteredRecipes.add(recipe);
+                }
             }
         }
         //String objects called recipeNames is created to store the names of the filtered recipes:
@@ -387,6 +407,7 @@ public class Test extends Application {
         }
         recipeListView.setItems(recipeNames); //  recipeListView is then updated with the filtered recipe names using the setItems() method.
     }
+
     /**
      * Find a recipe by its name.
      * * return the recipe object if found, null otherwise.
@@ -412,16 +433,14 @@ public class Test extends Application {
             int toIndex = toUnitBox.getSelectionModel().getSelectedIndex();
             String fromText = fromTextField.getText().trim(); //text fromTextField and remove any whitespace
 
-
             if (fromIndex == -1 || toIndex == -1 ||fromText.isEmpty()) {// If either ComboBox index is -1 or empty
                 return; //exit
             }
 
             double fromValue = Double.parseDouble(fromText); //parse double value from (fromText)
-            //Result = fromValue * appropriate conversion factor then divide by the conversion factor.
-            double result = fromValue * factors[fromIndex] / factors[toIndex];
-            //round the result to two decimal places and convert the double value to a string:
-            toTextField.setText(Double.toString(Math.round(result * 100.0) / 100.0));
+            double result = fromValue * factors[fromIndex] / factors[toIndex]; //fromValue * appropriate conversion factor then divide by the conversion factor.
+            toTextField.setText(Double.toString(Math.round(result * 100.0) / 100.0));//rounds result, two decimal places and convert to string
+
         } catch (NumberFormatException ex) { //If user enters 'C' calculations will not be done, Error message printed to console
             System.out.println("Cannot convert your input. Please enter a number.");
         }
